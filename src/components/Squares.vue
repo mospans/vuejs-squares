@@ -1,0 +1,716 @@
+<template>
+  <div class="squares-game">
+    <button v-for="(variant, index) in game.variants" :key="index" @click="startGame(variant.width, variant.height)">
+      {{ variant.width }}x{{ variant.height }}
+    </button>
+
+    <br>Очки: {{ game.points }}<br>
+
+    <div class="game" :style="{
+        height: (height * cellSide) + 'px',
+        width: (width * cellSide) + 'px'
+    }">
+      <div v-for="(cell, index) in cells"
+           :key="index"
+           class="field-cell"
+           v-if="game.status !== game.statuses.GAME_OVER"
+           @click="fieldCellOnClick(cell)"
+           :class="{clicked: cell.clicked, animated: cell.animation.enabled}"
+           :style="getFieldCellStyle(cell)"
+           :ref="'cell' + index"
+      ></div>
+
+      <div class="game_over"
+           v-if="game.status === game.statuses.GAME_OVER"
+           :style="{
+             top: (height * cellSide / 2) + 'px'
+           }"
+      >
+        Игра закончена
+      </div>
+    </div>
+  </div>
+</template>
+
+<script>
+import _ from 'lodash/lodash'
+import FieldCell from './FieldCell';
+
+if (window.requestAnimationFrame === undefined) {
+  window.requestAnimationFrame = function (callback) {
+    return window.webkitRequestAnimationFrame(callback)
+      || window.mozRequestAnimationFrame(callback) || window.oRequestAnimationFrame(callback)
+      || window.msRequestAnimationFrame(callback)
+      || (
+        function (callback) {
+          setInterval(callback, 1000 / 60);
+        }
+      )(callback);
+  };
+}
+
+let colors = ['#000', '#44f', '#f44', '#4f4', '#b0b', '#ff4'],
+  colorsCount = colors.length - 1,
+  minCountFieldCellsInRow = 3,
+  disappearingFieldCellsIndexes = [],
+  animationPromises = []
+;
+
+let randomFromTo = function (fromValue, toValue) {
+  return Math.floor(Math.random() * (toValue - fromValue + 1)) + fromValue;
+};
+
+let generateRandomColor = function (excludedValues) {
+  if (excludedValues === null || excludedValues === undefined) {
+    excludedValues = [];
+  }
+  let result;
+  do {
+    result = randomFromTo(1, colorsCount);
+  } while (excludedValues.indexOf(result) !== -1);
+
+  return result;
+};
+
+let getNextAnimationValues = function (animation) {
+  let result = {};
+
+  _.forEach(animation.properties, function (range, property) {
+    result[property] = range.start + animation.tick * (range.end - range.start) / 24;
+    if (
+      (result[property] > range.end && range.start < range.end)
+      || (result[property] < range.end && range.start > range.end)
+    ) {
+      delete result[property];
+      return;
+    }
+
+    result[property] = modifyCssValueByProperty(property, result[property]);
+  });
+
+  return result;
+};
+
+let setCss = function (element, style) {
+  _.forEach(style, function (value, property) {
+    element.style[property] = value;
+  });
+};
+
+let modifyCssValueByProperty = function (property, value) {
+  switch (property) {
+    case 'left':
+    case 'top':
+      value += 'px';
+      break;
+  }
+
+  return value.toString();
+};
+
+let isAnimateLastStep = function (element, animation) {
+  let result = true;
+
+  _.forEach(animation.properties, function (range, property) {
+    if (setCss(element, property) !== modifyCssValueByProperty(property, range.end)) {
+      result = false;
+    }
+  });
+
+  return result;
+};
+
+let stopAnimate = function (fieldCell) {
+  fieldCell.animation.properties = {};
+  fieldCell.animation.tick = 0;
+  fieldCell.animation.enabled = false;
+};
+
+export default {
+  name: 'squares',
+
+  data: function () {
+    return {
+      width: 3,
+      height: 3,
+      cells: [],
+      cellSide: 50,
+      game: {
+        variants: [
+          {width: 3, height: 3},
+          {width: 5, height: 5},
+          {width: 7, height: 7},
+          {width: 9, height: 9},
+          {width: 10, height: 10},
+          {width: 12, height: 12}
+        ],
+        points: 0,
+        statuses: {
+          STOPPED: 1,
+          RAN: 2,
+          ANIMATION_CELLS_DISAPPEARING: 3,
+          ANIMATION_SHIFT: 4,
+          ANIMATION_GAME_OVER: 5,
+          GAME_OVER: 6
+        },
+        status: undefined
+      }
+    };
+  },
+
+  methods: {
+    startGame: function (width, height) {
+      this.width = width;
+      this.height = height;
+      let wideSideSize = width;
+      if (this.height > this.width) {
+        wideSideSize = height;
+      }
+      this.cellSide = Math.round(500 / wideSideSize);
+      this.game.points = 0;
+      disappearingFieldCellsIndexes = [];
+
+      this.fill();
+      this.game.status = this.game.statuses.RAN;
+    },
+
+    /**
+     * @param {FieldCell} cell
+     * @returns {{width: string, height: string, backgroundColor: string, left: string, top: string, opacity: number}}
+     */
+    getFieldCellStyle: function (cell) {
+      let style = {
+        width: (this.cellSide - 2) + 'px',
+        height: (this.cellSide - 2) + 'px',
+        backgroundColor: colors[cell.color],
+        left: (cell.x * this.cellSide) + 'px',
+        top: (cell.y * this.cellSide) + 'px',
+        opacity: 1
+      };
+
+      if (cell.animation.enabled === true) {
+        _.forEach(cell.animation.properties, function (value, property) {
+          if (property in style) {
+            delete style[property];
+          }
+        });
+      }
+
+      return style;
+    },
+
+    fieldCellOnClick: function (cell) {
+      if (this.isAnimate() === true) {
+        return;
+      }
+
+      cell.onClick(generateRandomColor([cell.color]));
+      if (this.disappearByFieldCell(cell) === true) {
+        this.game.status = this.game.statuses.ANIMATION_CELLS_DISAPPEARING;
+      } else {
+        this.checkGameOver();
+      }
+    }
+  },
+
+  watch: {
+    'game.status': function (newValue, oldValue) {
+      let that = this;
+      animationPromises = [];
+
+      switch (newValue) {
+        case this.game.statuses.RAN:
+          if (oldValue !== this.game.statuses.STOPPED) {
+            this.disappearAll();
+          }
+          break;
+
+        case this.game.statuses.ANIMATION_CELLS_DISAPPEARING:
+          this.fieldCellsCoordinatesForEach(function (x, y) {
+            if (that.isFieldCellProcessed(x, y) === false) {
+              return undefined;
+            }
+            let fieldCell = that.getFieldCell(x, y);
+            fieldCell.animation.properties.opacity = {};
+            fieldCell.animation.properties.opacity.start = 1;
+            fieldCell.animation.properties.opacity.end = 0;
+            fieldCell.animation.enabled = true;
+            animationPromises.push(that.fieldCellAnimate(x, y));
+          });
+          break;
+
+        case this.game.statuses.ANIMATION_SHIFT:
+          let changedPartOfColumn,
+            fieldCell,
+            countNewFieldCells = 0,
+            startDelta,
+            fromNewToOldYValue;
+          for (let x = 0; x < this.width; x++) {
+            changedPartOfColumn = [];
+            fromNewToOldYValue = {};
+            for (let y = 0; y < this.height; y++) {
+              if (this.isFieldCellProcessed(x, y) === true) {
+                changedPartOfColumn.push(new FieldCell(
+                  x,
+                  changedPartOfColumn.length,
+                  generateRandomColor(),
+                  false
+                ));
+              }
+            }
+            countNewFieldCells = changedPartOfColumn.length;
+            for (let y = 0; y < this.height; y++) {
+              if (this.isFieldCellProcessed(x, y) === false) {
+                if (changedPartOfColumn.length === y) {
+                  break;
+                }
+                fieldCell = this.getFieldCell(x, y);
+                fromNewToOldYValue[changedPartOfColumn.length] = y;
+                changedPartOfColumn.push(new FieldCell(
+                  x,
+                  changedPartOfColumn.length,
+                  fieldCell.color,
+                  fieldCell.clicked
+                ));
+              }
+            }
+            for (let newY in changedPartOfColumn) {
+              if (newY <= countNewFieldCells) {
+                startDelta = +newY - countNewFieldCells;
+              } else {
+                startDelta = fromNewToOldYValue[newY];
+              }
+              fieldCell = this.getFieldCell(x, +newY);
+              fieldCell.color = changedPartOfColumn[newY].color;
+              fieldCell.clicked = changedPartOfColumn[newY].clicked;
+              fieldCell.animation.properties.top = {};
+              fieldCell.animation.properties.top.start = startDelta * this.cellSide;
+              fieldCell.animation.properties.top.end = changedPartOfColumn[newY].y * this.cellSide;
+              fieldCell.animation.enabled = true;
+              animationPromises.push(that.fieldCellAnimate(x, +newY));
+            }
+          }
+          disappearingFieldCellsIndexes = [];
+          break;
+
+        case this.game.statuses.ANIMATION_GAME_OVER:
+          this.fieldCellsCoordinatesForEach(function (x, y) {
+            let fieldCell = that.getFieldCell(x, y);
+            fieldCell.animation.properties.left = {};
+            fieldCell.animation.properties.left.start = x * that.cellSide;
+            fieldCell.animation.properties.top = {};
+            fieldCell.animation.properties.top.start = y * that.cellSide;
+
+            // 50% - 50%
+            if (randomFromTo(1, 2) === 1) {
+              fieldCell.animation.properties.top.end = randomFromTo(
+                -that.cellSide - 200,
+                -that.cellSide
+              );
+            } else {
+              fieldCell.animation.properties.top.end = randomFromTo(
+                that.cellSide * that.width,
+                that.cellSide * that.width + 200
+              );
+            }
+            // 50% - 50%
+            if (randomFromTo(1, 2) === 1) {
+              fieldCell.animation.properties.left.end = randomFromTo(
+                -that.cellSide - 200,
+                -that.cellSide
+              );
+            } else {
+              fieldCell.animation.properties.left.end = randomFromTo(
+                that.cellSide * that.height,
+                that.cellSide * that.height + 200
+              );
+            }
+
+            fieldCell.animation.properties.opacity = {};
+            fieldCell.animation.properties.opacity.start = 1;
+            fieldCell.animation.properties.opacity.end = 0;
+            fieldCell.animation.enabled = true;
+            animationPromises.push(that.fieldCellAnimate(x, y));
+          });
+          break;
+      }
+
+      Promise.all(animationPromises)
+        .then(function () {
+          that.changeStatusAfterAnimation();
+        });
+    }
+  },
+
+  created: function () {
+    this.getFieldCellIndex = function (x, y) {
+      return y * this.width + x;
+    };
+
+    /**
+     * @param {number} x
+     * @param {number} y
+     * @returns FieldCell
+     */
+    this.getFieldCell = function (x, y) {
+      let cellIndex = this.getFieldCellIndex(x, y);
+      if (this.cells.length < cellIndex) {
+        throw new Error('Not found cell with coordinates ' + x.toString() + ', ' + y.toString());
+      }
+      return this.cells[cellIndex];
+    };
+
+    this.fieldCellsCoordinatesForEach = function (callback, atEndReturnValue) {
+      if (typeof callback !== 'function') {
+        throw new Error('Argument is not a function');
+      }
+
+      let result;
+
+      for (let y = 0; y < this.height; y++) {
+        for (let x = 0; x < this.width; x++) {
+          result = callback(x, y);
+          if (result !== undefined) {
+            return result;
+          }
+        }
+      }
+
+      if (atEndReturnValue !== undefined) {
+        return atEndReturnValue;
+      }
+    };
+
+    this.fill = function () {
+      let that = this;
+
+      this.cells = [];
+      this.fieldCellsCoordinatesForEach(function (x, y) {
+        let excludedColorIndexes = [];
+        if (x === 0 && y === 0) {
+          excludedColorIndexes = [];
+        } else if (x === 0) {
+          excludedColorIndexes.push(
+            that.getFieldCell(x, y - 1).color
+          );
+        } else if (y === 0) {
+          excludedColorIndexes.push(
+            that.getFieldCell(x - 1, y).color
+          );
+        } else {
+          excludedColorIndexes.push(
+            that.getFieldCell(x, y - 1).color
+          );
+          excludedColorIndexes.push(
+            that.getFieldCell(x - 1, y).color
+          );
+        }
+
+        that.cells.push(new FieldCell(
+          x,
+          y,
+          generateRandomColor(excludedColorIndexes)
+        ));
+      });
+    };
+
+    this.disappearByFieldCell = function (fieldCell) {
+      let
+        x = fieldCell.x,
+        y = fieldCell.y,
+        //iteration of matches colors:
+        iteration = 1,
+        // point of match color:
+        matches = {
+          top: {x: x, y: y},
+          right: {x: x, y: y},
+          bottom: {x: x, y: y},
+          left: {x: x, y: y}
+        },
+        // in which directions search goes on:
+        activeDirections = {
+          top: true,
+          right: true,
+          bottom: true,
+          left: true
+        },
+        //count of horizontal matches colors:
+        horizontalMatchesCount = 1,
+        //count of vertical matches colors
+        verticalMatchesCount = 1;
+
+      while (iteration < 10) {
+        //check top border
+        if (matches.top.y === 0) {
+          activeDirections.top = false;
+        }
+        //check right border
+        if (matches.right.x === this.width - 1) {
+          activeDirections.right = false;
+        }
+        //check bottom border
+        if (matches.bottom.y === this.height - 1) {
+          activeDirections.bottom = false;
+        }
+        //check left border
+        if (matches.left.x === 0) {
+          activeDirections.left = false;
+        }
+        if (activeDirections.top === true) {
+          if (
+            this.getFieldCell(x, matches.top.y - 1).color === fieldCell.color
+            && this.isFieldCellProcessed(x, y) === false
+          ) {
+            matches.top.y = matches.top.y - 1;
+            verticalMatchesCount++;
+          } else {
+            activeDirections.top = false;
+          }
+        }
+        if (activeDirections.right === true) {
+          if (
+            this.getFieldCell(matches.right.x + 1, y).color === fieldCell.color
+            && this.isFieldCellProcessed(x, y) === false
+          ) {
+            matches.right.x = matches.right.x + 1;
+            horizontalMatchesCount++;
+          } else {
+            activeDirections.right = false;
+          }
+        }
+        if (activeDirections.bottom === true) {
+          if (
+            this.getFieldCell(x, matches.bottom.y + 1).color === fieldCell.color
+            && this.isFieldCellProcessed(x, y) === false
+          ) {
+            matches.bottom.y = matches.bottom.y + 1;
+            verticalMatchesCount++;
+          } else {
+            activeDirections.bottom = false;
+          }
+        }
+        if (activeDirections.left === true) {
+          if (
+            this.getFieldCell(matches.left.x - 1, y).color === fieldCell.color
+            && this.isFieldCellProcessed(x, y) === false
+          ) {
+            matches.left.x = matches.left.x - 1;
+            horizontalMatchesCount++;
+          } else {
+            activeDirections.left = false;
+          }
+        }
+
+        if (_.isEqual(activeDirections, {top: false, right: false, bottom: false, left: false})) {
+          break;
+        }
+        iteration++;
+      }
+      if (verticalMatchesCount < minCountFieldCellsInRow && horizontalMatchesCount < minCountFieldCellsInRow) {
+        return false;
+      }
+      if (verticalMatchesCount >= minCountFieldCellsInRow) {
+        for (let checkingY = matches.top.y; checkingY <= matches.bottom.y; checkingY++) {
+          if (this.isFieldCellProcessed(x, checkingY) === true) {
+            continue;
+          }
+          if (this.getFieldCell(x, checkingY).clicked === true) {
+            this.game.points++;
+            this.getFieldCell(x, checkingY).clicked = false;
+          }
+          this.game.points++;
+          disappearingFieldCellsIndexes.push(this.getFieldCellIndex(x, checkingY));
+        }
+      }
+      if (horizontalMatchesCount >= minCountFieldCellsInRow) {
+        for (let checkingX = matches.left.x; checkingX <= matches.right.x; checkingX++) {
+          if (this.isFieldCellProcessed(checkingX, y) === true) {
+            continue;
+          }
+          if (this.getFieldCell(checkingX, y).clicked === true) {
+            this.game.points++;
+            this.getFieldCell(checkingX, y).clicked = false;
+          }
+          this.game.points++;
+          disappearingFieldCellsIndexes.push(this.getFieldCellIndex(checkingX, y));
+        }
+      }
+      return true;
+    };
+
+    this.isFieldCellProcessed = function (x, y) {
+      return (disappearingFieldCellsIndexes.indexOf(this.getFieldCellIndex(x, y)) !== -1);
+    };
+
+    this.checkGameOver = function () {
+      let that = this,
+        isGameOver = this.fieldCellsCoordinatesForEach(
+        function (x, y) {
+          if (that.getFieldCell(x, y).clicked === false) {
+            return false;
+          }
+        },
+        true
+      );
+
+      if (isGameOver === true) {
+        this.game.status = this.game.statuses.ANIMATION_GAME_OVER;
+      }
+    };
+
+    this.disappearAll = function () {
+      let needToRestart = false,
+        fieldCell,
+        needToAnimateDisappearingCells = false;
+      do {
+        needToRestart = false;
+        for (let cellIndex in this.cells) {
+          fieldCell = this.cells[cellIndex];
+          if (this.disappearByFieldCell(fieldCell) === true) {
+            needToRestart = true;
+            needToAnimateDisappearingCells = true;
+            break;
+          }
+        }
+      } while (needToRestart === true);
+
+      if (needToAnimateDisappearingCells === true) {
+        this.game.status = this.game.statuses.ANIMATION_CELLS_DISAPPEARING;
+      } else {
+        this.checkGameOver();
+      }
+    };
+
+    this.isAnimate = function () {
+      let isAnimate = false,
+        that = this;
+      _.forEach(this.game.statuses, function (value, property) {
+        if (that.game.status === value && property.substr(0, 10) === 'ANIMATION_') {
+          isAnimate = true;
+        }
+      });
+
+      return isAnimate;
+    };
+
+    /**
+     * @param {number} x
+     * @param {number} y
+     *
+     * @returns Promise
+     */
+    this.fieldCellAnimate = function (x, y) {
+      let that = this;
+
+      return new Promise(function (resolve) {
+        that.animateStep(x, y, resolve);
+      });
+    };
+
+    this.animateStep = function (x, y, resolve) {
+      let that = this,
+        element = this.$refs['cell' + this.getFieldCellIndex(x, y)][0],
+        fieldCell = this.getFieldCell(x, y),
+        changedStyle = {};
+
+      if (
+        fieldCell.animation.enabled === true
+        && _.isEqual(fieldCell.animation.properties, {}) === false
+      ) {
+        fieldCell.animation.tick++;
+        changedStyle = getNextAnimationValues(fieldCell.animation);
+        setCss(element, changedStyle);
+      }
+
+      if (
+        isAnimateLastStep(element, fieldCell.animation) === true
+        || fieldCell.animation.enabled === false
+        || _.isEqual(changedStyle, {}) === true
+      ) {
+        stopAnimate(fieldCell);
+        resolve();
+      } else {
+        window.requestAnimationFrame(function () {
+          that.animateStep(x, y, resolve);
+        });
+      }
+    };
+
+    this.changeStatusAfterAnimation = function () {
+      if (this.isAnimationEnd() === false) {
+        return;
+      }
+
+      switch (this.game.status) {
+        case this.game.statuses.ANIMATION_GAME_OVER:
+          this.game.status = this.game.statuses.GAME_OVER;
+          break;
+
+        case this.game.statuses.ANIMATION_CELLS_DISAPPEARING:
+          this.game.status = this.game.statuses.ANIMATION_SHIFT;
+          break;
+
+        case this.game.statuses.ANIMATION_SHIFT:
+          this.game.status = this.game.statuses.RAN;
+          break;
+      }
+    };
+
+    this.isAnimationEnd = function () {
+      let isAnimationEnd = true;
+      _.forEach(this.cells, function (fieldCell) {
+        if (fieldCell.animation.enabled === true) {
+          isAnimationEnd = false;
+        }
+      });
+
+      return isAnimationEnd;
+    };
+  }
+}
+</script>
+
+<style scoped>
+  .squares-game {
+    position: relative;
+    width: 500px;
+    height: 100%;
+    margin: 0 auto;
+    text-align: center;
+  }
+
+  .game {
+    position: relative;
+    margin: 0 auto;
+    overflow: hidden;
+  }
+
+  .game_over {
+    position: absolute;
+    left: 0;
+    right: 0;
+    margin-top: -0.5em;
+    text-align: center;
+  }
+
+  .field-cell {
+    position: absolute;
+    z-index: 1;
+    background-repeat: no-repeat;
+    background-position: center center;
+    border: none;
+    -webkit-border-radius: 4px;
+    -moz-border-radius: 4px;
+    border-radius: 4px;
+  }
+
+  .field-cell:not(.clicked) {
+    cursor: pointer;
+    background-image: none;
+  }
+
+  .field-cell.clicked {
+    cursor: default;
+    background-image: url('../assets/cross.png');
+  }
+</style>
