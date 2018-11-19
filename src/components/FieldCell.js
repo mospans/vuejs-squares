@@ -1,20 +1,19 @@
-'use strict';
+'use strict'
 
-class FieldCell
-{
-  constructor(x, y, color, clicked) {
-    this.x = x;
-    this.y = y;
-    this.color = color;
-    this.clicked = clicked || false;
+class FieldCell {
+  constructor (x, y, color, clicked) {
+    this.x = x
+    this.y = y
+    this.color = color
+    this.clicked = clicked || false
     this.animation = {
       enabled: false,
       tick: 0,
       properties: {}
-    };
+    }
   };
 
-  onClick(newColor) {
+  onClick (newColor) {
     if (this.clicked === true) {
       return false
     }
