@@ -678,21 +678,25 @@ export default {
 
 <style scoped>
   .squares-game {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
     position: relative;
     width: 500px;
     height: 100%;
     margin: 0 auto;
     text-align: center;
+    font-family: Helvetica, Arial, sans-serif;
+    font-size: 20px;
   }
 
   .starter {
-    font-size: 16px;
     margin-right: 5px;
+    font-size: inherit;
   }
 
   .points {
     margin: 10px 0;
-    font-size: 16px;
+    font-size: inherit;
   }
 
   .game {
