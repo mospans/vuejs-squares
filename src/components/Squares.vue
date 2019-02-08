@@ -33,80 +33,80 @@
 </template>
 
 <script>
-import _ from 'lodash/lodash'
-import FieldCell from './FieldCell'
+import _ from 'lodash/lodash';
+import FieldCell from './FieldCell';
 
-const colors = ['#000', '#44f', '#f44', '#4f4', '#b0b', '#ff4']
+const colors = ['#000', '#44f', '#f44', '#4f4', '#b0b', '#ff4'];
 
-const colorsCount = colors.length - 1
+const colorsCount = colors.length - 1;
 
-const minCountFieldCellsInRow = 3
+const minCountFieldCellsInRow = 3;
 
-let disappearingFieldCellsIndexes = []
-let animationPromises = []
+let disappearingFieldCellsIndexes = [];
+let animationPromises = [];
 
-let randomFromTo = function (fromValue, toValue) {
-  return Math.floor(Math.random() * (toValue - fromValue + 1)) + fromValue
-}
+const randomFromTo = function (fromValue, toValue) {
+  return Math.floor(Math.random() * (toValue - fromValue + 1)) + fromValue;
+};
 
-let generateRandomColor = function (excludedValues) {
+const generateRandomColor = function (excludedValues) {
   if (excludedValues === null || excludedValues === undefined) {
-    excludedValues = []
+    excludedValues = [];
   }
-  let result
+  let result;
   do {
-    result = randomFromTo(1, colorsCount)
-  } while (excludedValues.indexOf(result) !== -1)
+    result = randomFromTo(1, colorsCount);
+  } while (excludedValues.indexOf(result) !== -1);
 
-  return result
-}
+  return result;
+};
 
-let getNextAnimationValues = function (animation) {
-  let result = {}
+const getNextAnimationValues = function (animation) {
+  const result = {};
 
-  _.forEach(animation.properties, function (range, property) {
-    result[property] = range.start + animation.tick * (range.end - range.start) / 24
+  _.forEach(animation.properties, (range, property) => {
+    result[property] = range.start + animation.tick * (range.end - range.start) / 24;
     if (
-      (result[property] > range.end && range.start < range.end) ||
-      (result[property] < range.end && range.start > range.end)
+      (result[property] > range.end && range.start < range.end)
+      || (result[property] < range.end && range.start > range.end)
     ) {
-      delete result[property]
-      return
+      delete result[property];
+      return;
     }
 
-    result[property] = modifyCssValueByProperty(property, result[property])
-  })
+    result[property] = modifyCssValueByProperty(property, result[property]);
+  });
 
-  return result
-}
+  return result;
+};
 
-let setCss = function (element, style) {
-  _.forEach(style, function (value, property) {
-    element.style[property] = value
-  })
-}
+const setCss = function (element, style) {
+  _.forEach(style, (value, property) => {
+    element.style[property] = value;
+  });
+};
 
 let modifyCssValueByProperty = function (property, value) {
   switch (property) {
     case 'left':
     case 'top':
-      value += 'px'
-      break
+      value += 'px';
+      break;
   }
 
-  return value.toString()
-}
+  return value.toString();
+};
 
-let stopAnimate = function (fieldCell) {
-  fieldCell.animation.properties = {}
-  fieldCell.animation.tick = 0
-  fieldCell.animation.enabled = false
-}
+const stopAnimate = function (fieldCell) {
+  fieldCell.animation.properties = {};
+  fieldCell.animation.tick = 0;
+  fieldCell.animation.enabled = false;
+};
 
 export default {
   name: 'squares',
 
-  data: function () {
+  data() {
     return {
       width: 3,
       height: 3,
@@ -119,7 +119,7 @@ export default {
           { width: 7, height: 7 },
           { width: 9, height: 9 },
           { width: 10, height: 10 },
-          { width: 12, height: 12 }
+          { width: 12, height: 12 },
         ],
         points: 0,
         statuses: {
@@ -128,203 +128,203 @@ export default {
           ANIMATION_CELLS_DISAPPEARING: 3,
           ANIMATION_SHIFT: 4,
           ANIMATION_GAME_OVER: 5,
-          GAME_OVER: 6
+          GAME_OVER: 6,
         },
-        status: undefined
-      }
-    }
+        status: undefined,
+      },
+    };
   },
 
   methods: {
-    startGame: function (width, height) {
-      this.width = width
-      this.height = height
-      let wideSideSize = width
+    startGame(width, height) {
+      this.width = width;
+      this.height = height;
+      let wideSideSize = width;
       if (this.height > this.width) {
-        wideSideSize = height
+        wideSideSize = height;
       }
-      this.cellSide = Math.round(500 / wideSideSize)
-      this.game.points = 0
-      disappearingFieldCellsIndexes = []
+      this.cellSide = Math.round(500 / wideSideSize);
+      this.game.points = 0;
+      disappearingFieldCellsIndexes = [];
 
-      this.fill()
-      this.game.status = this.game.statuses.RAN
+      this.fill();
+      this.game.status = this.game.statuses.RAN;
     },
 
     /**
      * @param {FieldCell} cell
      * @returns {{width: string, height: string, backgroundColor: string}}
      */
-    getFieldCellStyle: function (cell) {
+    getFieldCellStyle(cell) {
       return {
-        width: (this.cellSide - 2) + 'px',
-        height: (this.cellSide - 2) + 'px',
-        backgroundColor: colors[cell.color]
-      }
+        width: `${this.cellSide - 2}px`,
+        height: `${this.cellSide - 2}px`,
+        backgroundColor: colors[cell.color],
+      };
     },
 
-    fieldCellOnClick: function (cell) {
+    fieldCellOnClick(cell) {
       if (this.isAnimate() === true) {
-        return
+        return;
       }
 
-      cell.onClick(generateRandomColor([cell.color]))
+      cell.onClick(generateRandomColor([cell.color]));
       if (this.disappearByFieldCell(cell) === true) {
-        this.game.status = this.game.statuses.ANIMATION_CELLS_DISAPPEARING
+        this.game.status = this.game.statuses.ANIMATION_CELLS_DISAPPEARING;
       } else {
-        this.checkGameOver()
+        this.checkGameOver();
       }
-    }
+    },
   },
 
   watch: {
     'game.status': function (newValue, oldValue) {
-      let that = this
-      animationPromises = []
+      const that = this;
+      animationPromises = [];
 
       switch (newValue) {
         case that.game.statuses.RAN:
           if (oldValue !== that.game.statuses.STOPPED) {
-            that.$nextTick(function () {
-              that.disappearAll()
-            })
+            that.$nextTick(() => {
+              that.disappearAll();
+            });
           }
-          break
+          break;
 
         case that.game.statuses.ANIMATION_CELLS_DISAPPEARING:
-          that.fieldCellsCoordinatesForEach(function (x, y) {
+          that.fieldCellsCoordinatesForEach((x, y) => {
             if (that.isFieldCellProcessed(x, y) === false) {
-              return undefined
+              return undefined;
             }
-            let fieldCell = that.getFieldCell(x, y)
-            fieldCell.animation.properties.opacity = {}
-            fieldCell.animation.properties.opacity.start = 1
-            fieldCell.animation.properties.opacity.end = 0
-            fieldCell.animation.enabled = true
-            that.fieldCellAnimate(x, y)
-          })
-          break
+            const fieldCell = that.getFieldCell(x, y);
+            fieldCell.animation.properties.opacity = {};
+            fieldCell.animation.properties.opacity.start = 1;
+            fieldCell.animation.properties.opacity.end = 0;
+            fieldCell.animation.enabled = true;
+            that.fieldCellAnimate(x, y);
+          });
+          break;
 
         case that.game.statuses.ANIMATION_SHIFT:
-          let changedPartOfColumn
+          let changedPartOfColumn;
 
-          let fieldCell
+          let fieldCell;
 
-          let countNewFieldCells = 0
+          let countNewFieldCells = 0;
 
-          let startDelta
+          let startDelta;
 
-          let fromNewToOldYValue
+          let fromNewToOldYValue;
           for (let x = 0; x < that.width; x++) {
-            changedPartOfColumn = []
-            fromNewToOldYValue = {}
+            changedPartOfColumn = [];
+            fromNewToOldYValue = {};
             for (let y = 0; y < that.height; y++) {
               if (that.isFieldCellProcessed(x, y) === true) {
                 changedPartOfColumn.push(new FieldCell(
                   x,
                   changedPartOfColumn.length,
                   generateRandomColor(),
-                  false
-                ))
+                  false,
+                ));
               }
             }
-            countNewFieldCells = changedPartOfColumn.length
+            countNewFieldCells = changedPartOfColumn.length;
             for (let y = 0; y < that.height; y++) {
               if (that.isFieldCellProcessed(x, y) === false) {
                 if (changedPartOfColumn.length === y) {
-                  break
+                  break;
                 }
-                fieldCell = that.getFieldCell(x, y)
-                fromNewToOldYValue[changedPartOfColumn.length] = y
+                fieldCell = that.getFieldCell(x, y);
+                fromNewToOldYValue[changedPartOfColumn.length] = y;
                 changedPartOfColumn.push(new FieldCell(
                   x,
                   changedPartOfColumn.length,
                   fieldCell.color,
-                  fieldCell.clicked
-                ))
+                  fieldCell.clicked,
+                ));
               }
             }
-            for (let newY in changedPartOfColumn) {
+            for (const newY in changedPartOfColumn) {
               if (newY <= countNewFieldCells) {
-                startDelta = +newY - countNewFieldCells
+                startDelta = +newY - countNewFieldCells;
               } else {
-                startDelta = fromNewToOldYValue[newY]
+                startDelta = fromNewToOldYValue[newY];
               }
-              fieldCell = that.getFieldCell(x, +newY)
-              fieldCell.color = changedPartOfColumn[newY].color
-              fieldCell.clicked = changedPartOfColumn[newY].clicked
-              fieldCell.animation.properties.top = {}
-              fieldCell.animation.properties.top.start = startDelta * that.cellSide
-              fieldCell.animation.properties.top.end = changedPartOfColumn[newY].y * that.cellSide
-              fieldCell.animation.enabled = true
-              that.fieldCellAnimate(x, +newY)
-              setCss(that.getElement(x, +newY), { opacity: 1 })
+              fieldCell = that.getFieldCell(x, +newY);
+              fieldCell.color = changedPartOfColumn[newY].color;
+              fieldCell.clicked = changedPartOfColumn[newY].clicked;
+              fieldCell.animation.properties.top = {};
+              fieldCell.animation.properties.top.start = startDelta * that.cellSide;
+              fieldCell.animation.properties.top.end = changedPartOfColumn[newY].y * that.cellSide;
+              fieldCell.animation.enabled = true;
+              that.fieldCellAnimate(x, +newY);
+              setCss(that.getElement(x, +newY), { opacity: 1 });
             }
           }
-          disappearingFieldCellsIndexes = []
-          break
+          disappearingFieldCellsIndexes = [];
+          break;
 
         case that.game.statuses.ANIMATION_GAME_OVER:
-          that.fieldCellsCoordinatesForEach(function (x, y) {
-            let fieldCell = that.getFieldCell(x, y)
-            fieldCell.animation.properties.left = {}
-            fieldCell.animation.properties.left.start = x * that.cellSide
-            fieldCell.animation.properties.top = {}
-            fieldCell.animation.properties.top.start = y * that.cellSide
+          that.fieldCellsCoordinatesForEach((x, y) => {
+            const fieldCell = that.getFieldCell(x, y);
+            fieldCell.animation.properties.left = {};
+            fieldCell.animation.properties.left.start = x * that.cellSide;
+            fieldCell.animation.properties.top = {};
+            fieldCell.animation.properties.top.start = y * that.cellSide;
 
             // 50% - 50%
             if (randomFromTo(1, 2) === 1) {
               fieldCell.animation.properties.top.end = randomFromTo(
                 -that.cellSide - 200,
-                -that.cellSide
-              )
+                -that.cellSide,
+              );
             } else {
               fieldCell.animation.properties.top.end = randomFromTo(
                 that.cellSide * that.width,
-                that.cellSide * that.width + 200
-              )
+                that.cellSide * that.width + 200,
+              );
             }
             // 50% - 50%
             if (randomFromTo(1, 2) === 1) {
               fieldCell.animation.properties.left.end = randomFromTo(
                 -that.cellSide - 200,
-                -that.cellSide
-              )
+                -that.cellSide,
+              );
             } else {
               fieldCell.animation.properties.left.end = randomFromTo(
                 that.cellSide * that.height,
-                that.cellSide * that.height + 200
-              )
+                that.cellSide * that.height + 200,
+              );
             }
 
-            fieldCell.animation.properties.opacity = {}
-            fieldCell.animation.properties.opacity.start = 1
-            fieldCell.animation.properties.opacity.end = 0
-            fieldCell.animation.enabled = true
-            that.fieldCellAnimate(x, y)
-          })
-          break
+            fieldCell.animation.properties.opacity = {};
+            fieldCell.animation.properties.opacity.start = 1;
+            fieldCell.animation.properties.opacity.end = 0;
+            fieldCell.animation.enabled = true;
+            that.fieldCellAnimate(x, y);
+          });
+          break;
       }
 
       Promise.all(animationPromises)
-        .then(function () {
+        .then(() => {
           if (animationPromises.length === 0) {
-            return Promise.resolve()
+            return Promise.resolve();
           }
 
-          animationPromises = []
+          animationPromises = [];
 
-          that.$nextTick(function () {
-            that.changeStatusAfterAnimation()
-          })
-        })
-    }
+          that.$nextTick(() => {
+            that.changeStatusAfterAnimation();
+          });
+        });
+    },
   },
 
-  created: function () {
+  created() {
     this.getFieldCellIndex = function (x, y) {
-      return y * this.width + x
-    }
+      return y * this.width + x;
+    };
 
     /**
      * @param {number} x
@@ -332,346 +332,349 @@ export default {
      * @returns FieldCell
      */
     this.getFieldCell = function (x, y) {
-      let cellIndex = this.getFieldCellIndex(x, y)
+      const cellIndex = this.getFieldCellIndex(x, y);
       if (this.cells.length < cellIndex) {
-        throw new Error('Not found cell with coordinates ' + x.toString() + ', ' + y.toString())
+        throw new Error(`Not found cell with coordinates ${x.toString()}, ${y.toString()}`);
       }
-      return this.cells[cellIndex]
-    }
+      return this.cells[cellIndex];
+    };
 
     this.getElement = function (x, y) {
-      return this.$refs['cell' + this.getFieldCellIndex(x, y)][0]
-    }
+      return this.$refs[`cell${this.getFieldCellIndex(x, y)}`][0];
+    };
 
     this.positionElement = function (x, y) {
-      let style = {
-        left: (x * this.cellSide) + 'px',
-        top: (y * this.cellSide) + 'px',
-        opacity: 1
-      }
+      const style = {
+        left: `${x * this.cellSide}px`,
+        top: `${y * this.cellSide}px`,
+        opacity: 1,
+      };
 
-      let element = this.getElement(x, y)
-      setCss(element, style)
-    }
+      const element = this.getElement(x, y);
+      setCss(element, style);
+    };
 
     this.fieldCellsCoordinatesForEach = function (callback, atEndReturnValue) {
       if (typeof callback !== 'function') {
-        throw new Error('Argument is not a function')
+        throw new Error('Argument is not a function');
       }
 
-      let result
+      let result;
 
       for (let y = 0; y < this.height; y++) {
         for (let x = 0; x < this.width; x++) {
-          result = callback(x, y)
+          result = callback(x, y);
           if (result !== undefined) {
-            return result
+            return result;
           }
         }
       }
 
       if (atEndReturnValue !== undefined) {
-        return atEndReturnValue
+        return atEndReturnValue;
       }
-    }
+    };
 
     this.fill = function () {
-      let that = this
+      const that = this;
 
-      this.cells = []
-      this.fieldCellsCoordinatesForEach(function (x, y) {
-        let excludedColorIndexes = []
+      this.cells = [];
+      this.fieldCellsCoordinatesForEach((x, y) => {
+        let excludedColorIndexes = [];
         if (x === 0 && y === 0) {
-          excludedColorIndexes = []
+          excludedColorIndexes = [];
         } else if (x === 0) {
           excludedColorIndexes.push(
-            that.getFieldCell(x, y - 1).color
-          )
+            that.getFieldCell(x, y - 1).color,
+          );
         } else if (y === 0) {
           excludedColorIndexes.push(
-            that.getFieldCell(x - 1, y).color
-          )
+            that.getFieldCell(x - 1, y).color,
+          );
         } else {
           excludedColorIndexes.push(
-            that.getFieldCell(x, y - 1).color
-          )
+            that.getFieldCell(x, y - 1).color,
+          );
           excludedColorIndexes.push(
-            that.getFieldCell(x - 1, y).color
-          )
+            that.getFieldCell(x - 1, y).color,
+          );
         }
 
         that.cells.push(new FieldCell(
           x,
           y,
-          generateRandomColor(excludedColorIndexes)
-        ))
+          generateRandomColor(excludedColorIndexes),
+        ));
 
-        that.$nextTick(function () {
-          that.positionElement(x, y)
-        })
-      })
-    }
+        that.$nextTick(() => {
+          that.positionElement(x, y);
+        });
+      });
+    };
 
     this.disappearByFieldCell = function (fieldCell) {
-      let
-        x = fieldCell.x
+      const
+        x = fieldCell.x;
 
-      let y = fieldCell.y
+      const y = fieldCell.y;
 
       // iteration of matches colors:
 
-      let iteration = 1
+      let iteration = 1;
 
       // point of match color:
 
-      let matches = {
-        top: { x: x, y: y },
-        right: { x: x, y: y },
-        bottom: { x: x, y: y },
-        left: { x: x, y: y }
-      }
+      const matches = {
+        top: { x, y },
+        right: { x, y },
+        bottom: { x, y },
+        left: { x, y },
+      };
 
       // in which directions search goes on:
 
-      let activeDirections = {
+      const activeDirections = {
         top: true,
         right: true,
         bottom: true,
-        left: true
-      }
+        left: true,
+      };
 
       // count of horizontal matches colors:
 
-      let horizontalMatchesCount = 1
+      let horizontalMatchesCount = 1;
 
       // count of vertical matches colors
 
-      let verticalMatchesCount = 1
+      let verticalMatchesCount = 1;
 
       while (iteration < 10) {
         // check top border
         if (matches.top.y === 0) {
-          activeDirections.top = false
+          activeDirections.top = false;
         }
         // check right border
         if (matches.right.x === this.width - 1) {
-          activeDirections.right = false
+          activeDirections.right = false;
         }
         // check bottom border
         if (matches.bottom.y === this.height - 1) {
-          activeDirections.bottom = false
+          activeDirections.bottom = false;
         }
         // check left border
         if (matches.left.x === 0) {
-          activeDirections.left = false
+          activeDirections.left = false;
         }
         if (activeDirections.top === true) {
           if (
-            this.getFieldCell(x, matches.top.y - 1).color === fieldCell.color &&
-            this.isFieldCellProcessed(x, y) === false
+            this.getFieldCell(x, matches.top.y - 1).color === fieldCell.color
+            && this.isFieldCellProcessed(x, y) === false
           ) {
-            matches.top.y = matches.top.y - 1
-            verticalMatchesCount++
+            matches.top.y = matches.top.y - 1;
+            verticalMatchesCount++;
           } else {
-            activeDirections.top = false
+            activeDirections.top = false;
           }
         }
         if (activeDirections.right === true) {
           if (
-            this.getFieldCell(matches.right.x + 1, y).color === fieldCell.color &&
-            this.isFieldCellProcessed(x, y) === false
+            this.getFieldCell(matches.right.x + 1, y).color === fieldCell.color
+            && this.isFieldCellProcessed(x, y) === false
           ) {
-            matches.right.x = matches.right.x + 1
-            horizontalMatchesCount++
+            matches.right.x = matches.right.x + 1;
+            horizontalMatchesCount++;
           } else {
-            activeDirections.right = false
+            activeDirections.right = false;
           }
         }
         if (activeDirections.bottom === true) {
           if (
-            this.getFieldCell(x, matches.bottom.y + 1).color === fieldCell.color &&
-            this.isFieldCellProcessed(x, y) === false
+            this.getFieldCell(x, matches.bottom.y + 1).color === fieldCell.color
+            && this.isFieldCellProcessed(x, y) === false
           ) {
-            matches.bottom.y = matches.bottom.y + 1
-            verticalMatchesCount++
+            matches.bottom.y = matches.bottom.y + 1;
+            verticalMatchesCount++;
           } else {
-            activeDirections.bottom = false
+            activeDirections.bottom = false;
           }
         }
         if (activeDirections.left === true) {
           if (
-            this.getFieldCell(matches.left.x - 1, y).color === fieldCell.color &&
-            this.isFieldCellProcessed(x, y) === false
+            this.getFieldCell(matches.left.x - 1, y).color === fieldCell.color
+            && this.isFieldCellProcessed(x, y) === false
           ) {
-            matches.left.x = matches.left.x - 1
-            horizontalMatchesCount++
+            matches.left.x = matches.left.x - 1;
+            horizontalMatchesCount++;
           } else {
-            activeDirections.left = false
+            activeDirections.left = false;
           }
         }
 
-        if (_.isEqual(activeDirections, { top: false, right: false, bottom: false, left: false })) {
-          break
+        if (_.isEqual(activeDirections, {
+          top: false, right: false, bottom: false, left: false,
+        })) {
+          break;
         }
-        iteration++
+        iteration++;
       }
       if (verticalMatchesCount < minCountFieldCellsInRow && horizontalMatchesCount < minCountFieldCellsInRow) {
-        return false
+        return false;
       }
       if (verticalMatchesCount >= minCountFieldCellsInRow) {
         for (let checkingY = matches.top.y; checkingY <= matches.bottom.y; checkingY++) {
           if (this.isFieldCellProcessed(x, checkingY) === true) {
-            continue
+            continue;
           }
           if (this.getFieldCell(x, checkingY).clicked === true) {
-            this.game.points++
-            this.getFieldCell(x, checkingY).clicked = false
+            this.game.points++;
+            this.getFieldCell(x, checkingY).clicked = false;
           }
-          this.game.points++
-          disappearingFieldCellsIndexes.push(this.getFieldCellIndex(x, checkingY))
+          this.game.points++;
+          disappearingFieldCellsIndexes.push(this.getFieldCellIndex(x, checkingY));
         }
       }
       if (horizontalMatchesCount >= minCountFieldCellsInRow) {
         for (let checkingX = matches.left.x; checkingX <= matches.right.x; checkingX++) {
           if (this.isFieldCellProcessed(checkingX, y) === true) {
-            continue
+            continue;
           }
           if (this.getFieldCell(checkingX, y).clicked === true) {
-            this.game.points++
-            this.getFieldCell(checkingX, y).clicked = false
+            this.game.points++;
+            this.getFieldCell(checkingX, y).clicked = false;
           }
-          this.game.points++
-          disappearingFieldCellsIndexes.push(this.getFieldCellIndex(checkingX, y))
+          this.game.points++;
+          disappearingFieldCellsIndexes.push(this.getFieldCellIndex(checkingX, y));
         }
       }
-      return true
-    }
+      return true;
+    };
 
     this.isFieldCellProcessed = function (x, y) {
-      return (disappearingFieldCellsIndexes.indexOf(this.getFieldCellIndex(x, y)) !== -1)
-    }
+      return (disappearingFieldCellsIndexes.indexOf(this.getFieldCellIndex(x, y)) !== -1);
+    };
 
     this.checkGameOver = function () {
-      let that = this
+      const that = this;
 
-      let isGameOver = this.fieldCellsCoordinatesForEach(
-        function (x, y) {
+      const isGameOver = this.fieldCellsCoordinatesForEach(
+        (x, y) => {
           if (that.getFieldCell(x, y).clicked === false) {
-            return false
+            return false;
           }
         },
-        true
-      )
+        true,
+      );
 
       if (isGameOver === true) {
-        this.game.status = this.game.statuses.ANIMATION_GAME_OVER
+        this.game.status = this.game.statuses.ANIMATION_GAME_OVER;
       }
-    }
+    };
 
     this.disappearAll = function () {
-      let needToRestart = false
+      let needToRestart = false;
 
-      let fieldCell
+      let fieldCell;
 
-      let needToAnimateDisappearingCells = false
+      let needToAnimateDisappearingCells = false;
       do {
-        needToRestart = false
-        for (let cellIndex in this.cells) {
-          fieldCell = this.cells[cellIndex]
+        needToRestart = false;
+        for (const cellIndex in this.cells) {
+          fieldCell = this.cells[cellIndex];
           if (this.disappearByFieldCell(fieldCell) === true) {
-            needToRestart = true
-            needToAnimateDisappearingCells = true
-            break
+            needToRestart = true;
+            needToAnimateDisappearingCells = true;
+            break;
           }
         }
-      } while (needToRestart === true)
+      } while (needToRestart === true);
 
       if (needToAnimateDisappearingCells === true) {
-        this.game.status = this.game.statuses.ANIMATION_CELLS_DISAPPEARING
+        this.game.status = this.game.statuses.ANIMATION_CELLS_DISAPPEARING;
       } else {
-        this.checkGameOver()
+        this.checkGameOver();
       }
-    }
+    };
 
     this.isAnimate = function () {
-      return this.isStatusAnimation(this.game.status)
-    }
+      return this.isStatusAnimation(this.game.status);
+    };
 
     this.isStatusAnimation = function (status) {
-      let isAnimate = false
-      _.forEach(this.game.statuses, function (value, property) {
+      let isAnimate = false;
+      _.forEach(this.game.statuses, (value, property) => {
         if (status === value && property.substr(0, 10) === 'ANIMATION_') {
-          isAnimate = true
+          isAnimate = true;
         }
-      })
+      });
 
-      return isAnimate
-    }
+      return isAnimate;
+    };
 
     /**
      * @param {number} x
      * @param {number} y
      */
     this.fieldCellAnimate = function (x, y) {
-      let that = this
+      const that = this;
 
-      animationPromises.push(new Promise(function (resolve) {
-        that.animateStep(x, y, resolve)
-      }))
-    }
+      animationPromises.push(new Promise(((resolve) => {
+        that.animateStep(x, y, resolve);
+      })));
+    };
 
     this.animateStep = function (x, y, resolve) {
-      let that = this
+      const that = this;
 
-      let element = this.getElement(x, y)
+      const element = this.getElement(x, y);
 
-      let fieldCell = this.getFieldCell(x, y)
+      const fieldCell = this.getFieldCell(x, y);
 
-      let changedStyle = {}
+      let changedStyle = {};
 
       if (
-        fieldCell.animation.enabled === true &&
-        _.isEqual(fieldCell.animation.properties, {}) === false
+        fieldCell.animation.enabled === true
+        && _.isEqual(fieldCell.animation.properties, {}) === false
       ) {
-        fieldCell.animation.tick++
-        changedStyle = getNextAnimationValues(fieldCell.animation)
-        setCss(element, changedStyle)
+        fieldCell.animation.tick++;
+        changedStyle = getNextAnimationValues(fieldCell.animation);
+        setCss(element, changedStyle);
       }
 
       if (
-        fieldCell.animation.enabled === false ||
-        _.isEqual(changedStyle, {}) === true
+        fieldCell.animation.enabled === false
+        || _.isEqual(changedStyle, {}) === true
       ) {
-        stopAnimate(fieldCell)
-        resolve()
+        stopAnimate(fieldCell);
+        resolve();
       } else {
-        window.requestAnimationFrame(function () {
-          that.animateStep(x, y, resolve)
-        })
+        window.requestAnimationFrame(() => {
+          that.animateStep(x, y, resolve);
+        });
       }
-    }
+    };
 
     this.changeStatusAfterAnimation = function () {
       switch (this.game.status) {
         case this.game.statuses.ANIMATION_GAME_OVER:
-          this.game.status = this.game.statuses.GAME_OVER
-          break
+          this.game.status = this.game.statuses.GAME_OVER;
+          break;
 
         case this.game.statuses.ANIMATION_CELLS_DISAPPEARING:
-          this.game.status = this.game.statuses.ANIMATION_SHIFT
-          break
+          this.game.status = this.game.statuses.ANIMATION_SHIFT;
+          break;
 
         case this.game.statuses.ANIMATION_SHIFT:
-          this.game.status = this.game.statuses.RAN
-          break
+          this.game.status = this.game.statuses.RAN;
+          break;
       }
-    }
-  }
-}
+    };
+  },
+};
 </script>
 
 <style scoped>
-  .squares-game {
+  .
+  squares-game {
     position: relative;
     width: 500px;
     height: 100%;
