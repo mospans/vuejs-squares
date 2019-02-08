@@ -682,11 +682,17 @@ export default {
     -moz-osx-font-smoothing: grayscale;
     position: relative;
     width: 500px;
-    height: 100%;
+    height: 100vh;
     margin: 0 auto;
     text-align: center;
     font-family: Helvetica, Arial, sans-serif;
     font-size: 20px;
+  }
+
+  @media (orientation: landscape) {
+    .squares-game {
+      height: 560px;
+    }
   }
 
   .starter {
@@ -700,9 +706,18 @@ export default {
   }
 
   .game {
-    position: relative;
-    margin: 0 auto;
+    position: absolute;
+    top: 50%;
+    margin: -250px auto;
     overflow: hidden;
+  }
+
+  @media (orientation: landscape) {
+    .game {
+      position: relative;
+      top: 0;
+      margin: 0 auto;
+    }
   }
 
   .game_over {
