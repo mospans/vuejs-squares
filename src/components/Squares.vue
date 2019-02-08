@@ -1,10 +1,14 @@
 <template>
   <div class="squares-game">
-    <button v-for="(variant, index) in game.variants" :key="index" @click="startGame(variant.width, variant.height)">
+    <button v-for="(variant, index) in game.variants" :key="index"
+            class="starter"
+            @click="startGame(variant.width, variant.height)">
       {{ variant.width }}x{{ variant.height }}
     </button>
 
-    <br>Очки: {{ game.points }}<br>
+    <div class="points">
+      Points: {{ game.points }}
+    </div>
 
     <div class="game" :style="{
         height: (height * cellSide) + 'px',
@@ -26,7 +30,7 @@
              top: (height * cellSide / 2) + 'px'
            }"
       >
-        Игра закончена
+        Game over
       </div>
     </div>
   </div>
@@ -679,6 +683,16 @@ export default {
     height: 100%;
     margin: 0 auto;
     text-align: center;
+  }
+
+  .starter {
+    font-size: 16px;
+    margin-right: 5px;
+  }
+
+  .points {
+    margin: 10px 0;
+    font-size: 16px;
   }
 
   .game {
