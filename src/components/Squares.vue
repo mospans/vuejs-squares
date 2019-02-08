@@ -673,8 +673,7 @@ export default {
 </script>
 
 <style scoped>
-  .
-  squares-game {
+  .squares-game {
     position: relative;
     width: 500px;
     height: 100%;
