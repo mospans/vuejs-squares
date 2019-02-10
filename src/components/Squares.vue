@@ -7,7 +7,7 @@
     </button>
 
     <div class="points">
-      Points: {{ game.points }}
+      Score: {{ game.points }} | High Score: {{ highScore }}
     </div>
 
     <div class="game" :style="{
@@ -136,6 +136,7 @@ export default {
         },
         status: undefined,
       },
+      highScore: 0,
     };
   },
 
@@ -358,7 +359,7 @@ export default {
       setCss(element, style);
     };
 
-    this.fieldCellsCoordinatesForEach = function (callback, atEndReturnValue) {
+    this.fieldCellsCoordinatesForEach = (callback, atEndReturnValue) => {
       if (typeof callback !== 'function') {
         throw new Error('Argument is not a function');
       }
@@ -417,17 +418,12 @@ export default {
     };
 
     this.disappearByFieldCell = function (fieldCell) {
-      const
-        x = fieldCell.x;
-
-      const y = fieldCell.y;
+      const {x, y} = fieldCell;
 
       // iteration of matches colors:
-
       let iteration = 1;
 
       // point of match color:
-
       const matches = {
         top: { x, y },
         right: { x, y },
@@ -436,7 +432,6 @@ export default {
       };
 
       // in which directions search goes on:
-
       const activeDirections = {
         top: true,
         right: true,
@@ -445,11 +440,9 @@ export default {
       };
 
       // count of horizontal matches colors:
-
       let horizontalMatchesCount = 1;
 
       // count of vertical matches colors
-
       let verticalMatchesCount = 1;
 
       while (iteration < 10) {
@@ -571,6 +564,9 @@ export default {
 
       if (isGameOver === true) {
         this.game.status = this.game.statuses.ANIMATION_GAME_OVER;
+      } else {
+        // turn is over
+        this.saveGame();
       }
     };
 
@@ -661,6 +657,8 @@ export default {
       switch (this.game.status) {
         case this.game.statuses.ANIMATION_GAME_OVER:
           this.game.status = this.game.statuses.GAME_OVER;
+          this.dropSaveGame();
+
           break;
 
         case this.game.statuses.ANIMATION_CELLS_DISAPPEARING:
@@ -669,9 +667,82 @@ export default {
 
         case this.game.statuses.ANIMATION_SHIFT:
           this.game.status = this.game.statuses.RAN;
+          this.saveGame();
+
           break;
       }
     };
+
+    this.saveGame = () => {
+      this.$nextTick(() => {
+        if (!localStorage) {
+          return;
+        }
+
+        localStorage.gameState = JSON.stringify({
+          game: this.game,
+          height: this.height,
+          width: this.width,
+          cells: this.cells,
+          disappearingFieldCellsIndexes,
+        });
+      });
+    };
+
+    this.loadGame = () => {
+      if (!localStorage || !localStorage.gameState) {
+        return;
+      }
+
+      const that = this;
+      const gameState = JSON.parse(localStorage.gameState);
+      this.height = gameState.height;
+      this.width = gameState.width;
+      let wideSideSize = this.width;
+      if (this.height > this.width) {
+        wideSideSize = this.height;
+      }
+      this.cellSide = Math.round(500 / wideSideSize);
+      disappearingFieldCellsIndexes = gameState.disappearingFieldCellsIndexes;
+      this.game = gameState.game;
+      this.cells = [];
+      this.fieldCellsCoordinatesForEach((x, y) => {
+        const cellIndex = that.getFieldCellIndex(x, y);
+        that.cells.push(new FieldCell(
+          x,
+          y,
+          gameState.cells[cellIndex].color,
+          gameState.cells[cellIndex].clicked,
+        ));
+
+        that.$nextTick(() => {
+          that.positionElement(x, y);
+        });
+      });
+    };
+
+    this.dropSaveGame = () => {
+      const that = this;
+
+      this.$nextTick(() => {
+        if (!localStorage || !localStorage.gameState) {
+          return;
+        }
+
+        delete localStorage.gameState;
+
+        if (that.game.points > that.highScore) {
+          that.highScore = that.game.points;
+          localStorage.highScore = that.highScore;
+        }
+      });
+    };
+  },
+
+  mounted() {
+    this.loadGame();
+
+    this.highScore = localStorage && localStorage.highScore ? +localStorage.highScore : 0;
   },
 };
 </script>

@@ -1,9 +1,9 @@
 class FieldCell {
-  constructor(x, y, color, clicked) {
+  constructor(x, y, color, clicked = false) {
     this.x = x;
     this.y = y;
     this.color = color;
-    this.clicked = clicked || false;
+    this.clicked = clicked;
     this.animation = {
       enabled: false,
       tick: 0,
