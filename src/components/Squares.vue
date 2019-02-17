@@ -145,12 +145,13 @@ export default {
 
   methods: {
     getHighScore() {
-      if (!localStorage || !localStorage.highScore || this.width) {
+      if (!localStorage || !localStorage.highScore || !this.width) {
         return null;
       }
 
       const highScore = JSON.parse(localStorage.highScore);
-      this.highScore = highScore[`${this.width}x${this.height}`]
+
+      return highScore[`${this.width}x${this.height}`]
         ? +highScore[`${this.width}x${this.height}`]
         : null;
     },
@@ -168,7 +169,7 @@ export default {
 
       this.fill();
       this.game.status = this.game.statuses.RAN;
-      this.getHighScore();
+      this.highScore = this.getHighScore();
     },
 
     /**
@@ -734,7 +735,7 @@ export default {
           that.positionElement(x, y);
         });
       });
-      this.getHighScore();
+      this.highScore = this.getHighScore();
     };
 
     this.dropSaveGame = () => {
