@@ -747,9 +747,9 @@ export default {
 
         delete localStorage.gameState;
 
-        if (localStorage.highScore && that.game.points > that.highScore) {
+        if (that.game.points > that.highScore) {
           that.highScore = that.game.points;
-          const highScore = JSON.parse(localStorage.highScore);
+          const highScore = localStorage.highScore ? JSON.parse(localStorage.highScore) : {};
           localStorage.highScore = JSON.stringify(Object.assign(
             typeof highScore === 'object' ? highScore : {},
             {
