@@ -7,7 +7,10 @@
     </button>
 
     <div class="points">
-      Score: {{ game.points }} | High Score: {{ highScore }}
+      Score: {{ game.points }}
+      <span v-if="game.status !== game.statuses.STOPPED && highScore">
+        | High Score: {{ highScore }}
+      </span>
     </div>
 
     <div class="game" :style="{
@@ -141,6 +144,17 @@ export default {
   },
 
   methods: {
+    getHighScore() {
+      if (!localStorage || !localStorage.highScore || this.width) {
+        return null;
+      }
+
+      const highScore = JSON.parse(localStorage.highScore);
+      this.highScore = highScore[`${this.width}x${this.height}`]
+        ? +highScore[`${this.width}x${this.height}`]
+        : null;
+    },
+
     startGame(width, height) {
       this.width = width;
       this.height = height;
@@ -154,6 +168,7 @@ export default {
 
       this.fill();
       this.game.status = this.game.statuses.RAN;
+      this.getHighScore();
     },
 
     /**
@@ -719,6 +734,7 @@ export default {
           that.positionElement(x, y);
         });
       });
+      this.getHighScore();
     };
 
     this.dropSaveGame = () => {
@@ -733,7 +749,13 @@ export default {
 
         if (that.game.points > that.highScore) {
           that.highScore = that.game.points;
-          localStorage.highScore = that.highScore;
+          const highScore = JSON.parse(localStorage.highScore);
+          localStorage.highScore = JSON.stringify(Object.assign(
+            typeof highScore === 'object' ? highScore : {},
+            {
+              [`${that.width}x${that.height}`]: that.highScore,
+            },
+          ));
         }
       });
     };
@@ -741,8 +763,6 @@ export default {
 
   mounted() {
     this.loadGame();
-
-    this.highScore = localStorage && localStorage.highScore ? +localStorage.highScore : 0;
   },
 };
 </script>
