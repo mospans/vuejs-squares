@@ -6,9 +6,9 @@
       {{ variant.width }}x{{ variant.height }}
     </button>
 
-    <div class="points">
+    <div class="points" v-if="game.status !== game.statuses.STOPPED">
       Score: {{ game.points }}
-      <span v-if="game.status !== game.statuses.STOPPED && highScore">
+      <span v-if="highScore">
         | High Score: {{ highScore }}
       </span>
     </div>
@@ -104,12 +104,6 @@ let modifyCssValueByProperty = function (property, value) {
   return value.toString();
 };
 
-const stopAnimate = function (fieldCell) {
-  fieldCell.animation.properties = {};
-  fieldCell.animation.tick = 0;
-  fieldCell.animation.enabled = false;
-};
-
 export default {
   name: 'squares',
 
@@ -137,7 +131,7 @@ export default {
           ANIMATION_GAME_OVER: 5,
           GAME_OVER: 6,
         },
-        status: undefined,
+        status: 1,
       },
       highScore: 0,
     };
@@ -217,24 +211,20 @@ export default {
             if (that.isFieldCellProcessed(x, y) === false) {
               return undefined;
             }
-            const fieldCell = that.getFieldCell(x, y);
-            fieldCell.animation.properties.opacity = {};
-            fieldCell.animation.properties.opacity.start = 1;
-            fieldCell.animation.properties.opacity.end = 0;
-            fieldCell.animation.enabled = true;
+            const cell = that.getFieldCell(x, y);
+            cell.animation.properties.opacity = {};
+            cell.animation.properties.opacity.start = 1;
+            cell.animation.properties.opacity.end = 0;
+            cell.animation.enabled = true;
             that.fieldCellAnimate(x, y);
           });
           break;
 
         case that.game.statuses.ANIMATION_SHIFT:
+          let cell;
           let changedPartOfColumn;
-
-          let fieldCell;
-
           let countNewFieldCells = 0;
-
           let startDelta;
-
           let fromNewToOldYValue;
           for (let x = 0; x < that.width; x++) {
             changedPartOfColumn = [];
@@ -255,13 +245,13 @@ export default {
                 if (changedPartOfColumn.length === y) {
                   break;
                 }
-                fieldCell = that.getFieldCell(x, y);
+                cell = that.getFieldCell(x, y);
                 fromNewToOldYValue[changedPartOfColumn.length] = y;
                 changedPartOfColumn.push(new FieldCell(
                   x,
                   changedPartOfColumn.length,
-                  fieldCell.color,
-                  fieldCell.clicked,
+                  cell.color,
+                  cell.clicked,
                 ));
               }
             }
@@ -271,13 +261,13 @@ export default {
               } else {
                 startDelta = fromNewToOldYValue[newY];
               }
-              fieldCell = that.getFieldCell(x, +newY);
-              fieldCell.color = changedPartOfColumn[newY].color;
-              fieldCell.clicked = changedPartOfColumn[newY].clicked;
-              fieldCell.animation.properties.top = {};
-              fieldCell.animation.properties.top.start = startDelta * that.cellSide;
-              fieldCell.animation.properties.top.end = changedPartOfColumn[newY].y * that.cellSide;
-              fieldCell.animation.enabled = true;
+              cell = that.getFieldCell(x, +newY);
+              cell.color = changedPartOfColumn[newY].color;
+              cell.clicked = changedPartOfColumn[newY].clicked;
+              cell.animation.properties.top = {};
+              cell.animation.properties.top.start = startDelta * that.cellSide;
+              cell.animation.properties.top.end = changedPartOfColumn[newY].y * that.cellSide;
+              cell.animation.enabled = true;
               that.fieldCellAnimate(x, +newY);
               setCss(that.getElement(x, +newY), { opacity: 1 });
             }
@@ -287,41 +277,41 @@ export default {
 
         case that.game.statuses.ANIMATION_GAME_OVER:
           that.fieldCellsCoordinatesForEach((x, y) => {
-            const fieldCell = that.getFieldCell(x, y);
-            fieldCell.animation.properties.left = {};
-            fieldCell.animation.properties.left.start = x * that.cellSide;
-            fieldCell.animation.properties.top = {};
-            fieldCell.animation.properties.top.start = y * that.cellSide;
+            const cell = that.getFieldCell(x, y);
+            cell.animation.properties.left = {};
+            cell.animation.properties.left.start = x * that.cellSide;
+            cell.animation.properties.top = {};
+            cell.animation.properties.top.start = y * that.cellSide;
 
             // 50% - 50%
             if (randomFromTo(1, 2) === 1) {
-              fieldCell.animation.properties.top.end = randomFromTo(
+              cell.animation.properties.top.end = randomFromTo(
                 -that.cellSide - 200,
                 -that.cellSide,
               );
             } else {
-              fieldCell.animation.properties.top.end = randomFromTo(
+              cell.animation.properties.top.end = randomFromTo(
                 that.cellSide * that.width,
                 that.cellSide * that.width + 200,
               );
             }
             // 50% - 50%
             if (randomFromTo(1, 2) === 1) {
-              fieldCell.animation.properties.left.end = randomFromTo(
+              cell.animation.properties.left.end = randomFromTo(
                 -that.cellSide - 200,
                 -that.cellSide,
               );
             } else {
-              fieldCell.animation.properties.left.end = randomFromTo(
+              cell.animation.properties.left.end = randomFromTo(
                 that.cellSide * that.height,
                 that.cellSide * that.height + 200,
               );
             }
 
-            fieldCell.animation.properties.opacity = {};
-            fieldCell.animation.properties.opacity.start = 1;
-            fieldCell.animation.properties.opacity.end = 0;
-            fieldCell.animation.enabled = true;
+            cell.animation.properties.opacity = {};
+            cell.animation.properties.opacity.start = 1;
+            cell.animation.properties.opacity.end = 0;
+            cell.animation.enabled = true;
             that.fieldCellAnimate(x, y);
           });
           break;
@@ -660,7 +650,7 @@ export default {
         fieldCell.animation.enabled === false
         || _.isEqual(changedStyle, {}) === true
       ) {
-        stopAnimate(fieldCell);
+        fieldCell.stopAnimate();
         resolve();
       } else {
         window.requestAnimationFrame(() => {
@@ -679,6 +669,7 @@ export default {
 
         case this.game.statuses.ANIMATION_CELLS_DISAPPEARING:
           this.game.status = this.game.statuses.ANIMATION_SHIFT;
+
           break;
 
         case this.game.statuses.ANIMATION_SHIFT:
@@ -720,7 +711,6 @@ export default {
       }
       this.cellSide = Math.round(500 / wideSideSize);
       disappearingFieldCellsIndexes = gameState.disappearingFieldCellsIndexes;
-      this.game = gameState.game;
       this.cells = [];
       this.fieldCellsCoordinatesForEach((x, y) => {
         const cellIndex = that.getFieldCellIndex(x, y);
@@ -736,6 +726,8 @@ export default {
         });
       });
       this.highScore = this.getHighScore();
+      this.game.points = gameState.game.points;
+      this.game.status = gameState.game.status;
     };
 
     this.dropSaveGame = () => {

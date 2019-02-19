@@ -13,10 +13,16 @@ class FieldCell {
 
   onClick(newColor) {
     if (this.clicked === true) {
-      return false;
+      return;
     }
     this.clicked = true;
     this.color = newColor;
+  }
+
+  stopAnimate() {
+    this.animation.properties = {};
+    this.animation.tick = 0;
+    this.animation.enabled = false;
   }
 }
 
