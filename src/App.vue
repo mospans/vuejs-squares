@@ -3,7 +3,7 @@
 </template>
 
 <script>
-  import Squares from './components/Squares';
+  import Squares from './components/Squares.vue';
 
   export default {
     name: 'App',

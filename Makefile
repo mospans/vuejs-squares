@@ -1,3 +1,3 @@
 install:
-	yarn install
-	yarn run build
+	npm ci --include=dev
+	npm run build
