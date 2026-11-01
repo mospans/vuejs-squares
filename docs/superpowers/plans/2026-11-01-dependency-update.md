@@ -108,24 +108,24 @@ git commit -m "fix: pin node lts and update nvm for deploys"
 - Create: `.nvmrc`
 - Modify: `package.json`
 
-- [ ] **Step 1: Создать `.nvmrc`**
+- [x] **Step 1: Создать `.nvmrc`**
 
 ```
 24
 ```
 
-- [ ] **Step 2: Добавить `engines`**
+- [x] **Step 2: Добавить `engines`**
 
 ```json
 "engines": { "node": ">=22.12.0 <27" }
 ```
 
-- [ ] **Step 3: Проверить baseline на Node 24**
+- [x] **Step 3: Проверить baseline на Node 24**
 
 Run: `nvm install 24 && nvm use 24 && rm -rf node_modules && yarn install && yarn build`
 Expected: сборка Vue CLI 5 проходит. Если нет — не блокироваться, сразу переходить к этапу 2.
 
-- [ ] **Step 4: Коммит**
+- [x] **Step 4: Коммит**
 
 ```bash
 git add .nvmrc package.json
@@ -148,7 +148,7 @@ git commit -m "chore: pin node version"
 - Delete: `vue.config.js`, `babel.config.js`, `.browserslistrc`
 - Modify: `postcss.config.js` (ESM)
 
-- [ ] **Step 1: Переписать зависимости и скрипты**
+- [x] **Step 1: Переписать зависимости и скрипты**
 
 ```json
 {
@@ -184,7 +184,7 @@ git commit -m "chore: pin node version"
 
 Удаляются: `@vue/cli-*`, `vue-template-compiler`, `babel-eslint`, `@vue/eslint-config-airbnb`, `lodash.template`, `mixin-deep`, `serialize-javascript`, `register-service-worker`, `peerDependencies`.
 
-- [ ] **Step 2: Создать `vite.config.js`**
+- [x] **Step 2: Создать `vite.config.js`**
 
 ```js
 import { defineConfig, loadEnv } from 'vite';
@@ -227,11 +227,11 @@ export default defineConfig(({ mode }) => {
 });
 ```
 
-- [ ] **Step 3: Перенести `index.html` в корень и подключить entry**
+- [x] **Step 3: Перенести `index.html` в корень и подключить entry**
 
 Добавить перед `</body>`: `<script type="module" src="/src/main.js"></script>`. Остальную разметку сохранить.
 
-- [ ] **Step 4: Перевести `postcss.config.js` на ESM**
+- [x] **Step 4: Перевести `postcss.config.js` на ESM**
 
 ```js
 export default { plugins: { autoprefixer: {} } };
@@ -239,7 +239,7 @@ export default { plugins: { autoprefixer: {} } };
 
 `autoprefixer` не входит в новые зависимости — либо добавить `autoprefixer` в devDependencies, либо удалить `postcss.config.js` (Vite сам префиксует по browserslist). Решение: удалить файл, если autoprefixer не нужен явно.
 
-- [ ] **Step 5: Удалить vue-cli/babel артефакты, обновить Makefile**
+- [x] **Step 5: Удалить vue-cli/babel артефакты, обновить Makefile**
 
 ```make
 install:
@@ -252,12 +252,12 @@ rm yarn.lock vue.config.js babel.config.js .browserslistrc
 npm install
 ```
 
-- [ ] **Step 6: Проверить сборку**
+- [x] **Step 6: Проверить сборку**
 
 Run: `rm -rf node_modules && npm ci && npm run build`
 Expected: `dist/index.html`, `dist/assets/*`, `dist/sw.js`, `dist/manifest.webmanifest`; ошибок нет.
 
-- [ ] **Step 7: Коммит**
+- [x] **Step 7: Коммит**
 
 ```bash
 git add -A
@@ -272,7 +272,7 @@ git commit -m "build: migrate to vite and npm"
 - Modify: `src/registerServiceWorker.js`
 - Delete: `public/manifest.json` (манифест теперь в vite.config.js)
 
-- [ ] **Step 1: `src/main.js`**
+- [x] **Step 1: `src/main.js`**
 
 ```js
 import { createApp } from 'vue';
@@ -282,7 +282,7 @@ import './registerServiceWorker';
 createApp(App).mount('#app');
 ```
 
-- [ ] **Step 2: `src/registerServiceWorker.js`**
+- [x] **Step 2: `src/registerServiceWorker.js`**
 
 ```js
 /* eslint-disable no-console */
@@ -299,7 +299,7 @@ if (import.meta.env.PROD) {
 }
 ```
 
-- [ ] **Step 3: Убрать `v-for` + `v-if` с одного элемента**
+- [x] **Step 3: Убрать `v-for` + `v-if` с одного элемента**
 
 В шаблоне `Squares.vue` (строки 20–28) обернуть:
 ```html
@@ -314,7 +314,7 @@ if (import.meta.env.PROD) {
 </template>
 ```
 
-- [ ] **Step 4: Удалить lodash**
+- [x] **Step 4: Удалить lodash**
 
 Заменить три использования:
 - `_.forEach(animation.properties, (range, property) => {...})` → `Object.entries(animation.properties).forEach(([property, range]) => {...})`;
@@ -323,21 +323,31 @@ if (import.meta.env.PROD) {
 
 Удалить `import _ from 'lodash/lodash';`.
 
-- [ ] **Step 5: Заменить `process.env`**
+- [x] **Step 5: Заменить `process.env`**
 
 `process.env.BASE_URL` → `import.meta.env.BASE_URL`, `process.env.NODE_ENV === 'production'` → `import.meta.env.PROD`.
 
-- [ ] **Step 6: Проверить refs и сборку**
+- [x] **Step 6: Проверить refs и сборку**
 
 Run: `npm run build && npm run dev`
 Expected: сетка рендерится, клики работают, анимации не падают. Если `$refs.cellN` не массив — убрать `[0]` в `getElement`.
 
-- [ ] **Step 7: Коммит**
+- [x] **Step 7: Коммит**
 
 ```bash
-git add src public/manifest.json
-git commit -m "feat: migrate app to vue 3"
+git add -A
+git commit -m "feat: migrate to vue 3 and vite"
 ```
+
+**Результат этапов 1–2 (2026-11-01):**
+
+- baseline на Node 24 локально не гонялся: на машине нет nvm/yarn, но Vue CLI 5 уже успешно собрался на проде на Node 24 (этап 0) — этого достаточно.
+- локальные проверки шли на Node 26.12 (удовлетворяет `engines`); прод — Node 24.
+- `postcss.config.js` удалён, а не переведён на ESM: autoprefixer не нужен, Vite префиксует сам.
+- добавлены `eslint.config.js` (flat config, `@eslint/js`) и `.husky/pre-commit` (`npx lint-staged`), т.к. после удаления vue-cli/yorkie git-хуки перестали бы работать.
+- проверено: `npm ci --include=dev && npm run build` — успешно; `eslint .` — 0 ошибок; headless Chrome: 6 вариантов игры, 25 клеток 5x5, все позиционированы (`$refs` работают), клик работает, перезагрузка восстанавливает `gameState` из localStorage, ошибок в консоли нет.
+- `npm audit --omit=dev` — 0 уязвимостей; 16 moderate/low только в dev-цепочке workbox-build (build-time, в бандл не попадает).
+- коммиты: `f00ec7f` (план), `debeea1` (Node), `165e143` (Vue 3 + Vite).
 
 ---
 
@@ -349,12 +359,14 @@ git commit -m "feat: migrate app to vue 3"
 
 Проверить: старт игры 3x3…12x12, клик, исчезновение линии, сдвиг, game over, счёт, high score, перезагрузка восстанавливает `gameState`, offline после первой загрузки.
 
-- [ ] **Step 2: Чистая установка**
+Частично автоматизировано (headless Chrome): старт 5x5, 25 позиционированных клеток, клик, сохранение/восстановление `gameState`. Анимации исчезновения/сдвига, game over и offline остаются на ручную проверку после деплоя.
+
+- [x] **Step 2: Чистая установка**
 
 Run: `rm -rf node_modules dist && npm ci && npm run build`
 Expected: успешная сборка.
 
-- [ ] **Step 3: Линт**
+- [x] **Step 3: Линт**
 
 Run: `npm run lint`
 Expected: без ошибок (или зафиксировать остаток и не блокировать деплой — линт не входит в `make install`).
