@@ -1,29 +1,36 @@
 # squares
 
+## Requirements
+
+- Node.js 24 LTS (`.nvmrc`)
+- npm 11
+
 ## Project setup
+
 ```
-yarn install
+npm ci
 ```
 
 ### Compiles and hot-reloads for development
+
 ```
-yarn run serve
+npm run dev
 ```
 
 ### Compiles and minifies for production
+
 ```
-yarn run build
+npm run build
 ```
 
-### Run your tests
+### Preview production build
+
 ```
-yarn run test
+npm run preview
 ```
 
 ### Lints and fixes files
-```
-yarn run lint
-```
 
-### Customize configuration
-See [Configuration Reference](https://cli.vuejs.org/config/).
+```
+npm run lint
+```

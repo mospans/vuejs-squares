@@ -17,15 +17,15 @@
         height: (height * cellSide) + 'px',
         width: (width * cellSide) + 'px'
     }">
-      <div v-for="(cell, index) in cells"
-           :key="index"
-           class="field-cell"
-           v-if="game.status !== game.statuses.GAME_OVER"
-           @click="fieldCellOnClick(cell)"
-           :class="{clicked: cell.clicked, animated: cell.animation.enabled}"
-           :style="getFieldCellStyle(cell)"
-           :ref="'cell' + index"
-      ></div>
+      <template v-for="(cell, index) in cells" :key="index">
+        <div class="field-cell"
+             v-if="game.status !== game.statuses.GAME_OVER"
+             @click="fieldCellOnClick(cell)"
+             :class="{clicked: cell.clicked, animated: cell.animation.enabled}"
+             :style="getFieldCellStyle(cell)"
+             :ref="'cell' + index"
+        ></div>
+      </template>
 
       <div class="game_over"
            v-if="game.status === game.statuses.GAME_OVER"
@@ -40,8 +40,7 @@
 </template>
 
 <script>
-import _ from 'lodash/lodash';
-import FieldCell from './FieldCell';
+import FieldCell from './FieldCell.js';
 
 const colors = ['#000', '#44f', '#f44', '#4f4', '#b0b', '#ff4'];
 
@@ -71,7 +70,7 @@ const generateRandomColor = function (excludedValues) {
 const getNextAnimationValues = function (animation) {
   const result = {};
 
-  _.forEach(animation.properties, (range, property) => {
+  Object.entries(animation.properties).forEach(([property, range]) => {
     result[property] = range.start + animation.tick * (range.end - range.start) / 24;
     if (
       (result[property] > range.end && range.start < range.end)
@@ -88,7 +87,7 @@ const getNextAnimationValues = function (animation) {
 };
 
 const setCss = function (element, style) {
-  _.forEach(style, (value, property) => {
+  Object.entries(style).forEach(([property, value]) => {
     element.style[property] = value;
   });
 };
@@ -105,7 +104,7 @@ let modifyCssValueByProperty = function (property, value) {
 };
 
 export default {
-  name: 'squares',
+  name: 'SquaresGame',
 
   data() {
     return {
@@ -220,10 +219,10 @@ export default {
           });
           break;
 
-        case that.game.statuses.ANIMATION_SHIFT:
+        case that.game.statuses.ANIMATION_SHIFT: {
           let cell;
           let changedPartOfColumn;
-          let countNewFieldCells = 0;
+          let countNewFieldCells;
           let startDelta;
           let fromNewToOldYValue;
           for (let x = 0; x < that.width; x++) {
@@ -274,6 +273,7 @@ export default {
           }
           disappearingFieldCellsIndexes = [];
           break;
+        }
 
         case that.game.statuses.ANIMATION_GAME_OVER:
           that.fieldCellsCoordinatesForEach((x, y) => {
@@ -513,9 +513,12 @@ export default {
           }
         }
 
-        if (_.isEqual(activeDirections, {
-          top: false, right: false, bottom: false, left: false,
-        })) {
+        if (
+          !activeDirections.top
+          && !activeDirections.right
+          && !activeDirections.bottom
+          && !activeDirections.left
+        ) {
           break;
         }
         iteration++;
@@ -577,7 +580,7 @@ export default {
     };
 
     this.disappearAll = function () {
-      let needToRestart = false;
+      let needToRestart;
 
       let fieldCell;
 
@@ -607,8 +610,8 @@ export default {
 
     this.isStatusAnimation = function (status) {
       let isAnimate = false;
-      _.forEach(this.game.statuses, (value, property) => {
-        if (status === value && property.substr(0, 10) === 'ANIMATION_') {
+      Object.entries(this.game.statuses).forEach(([property, value]) => {
+        if (status === value && property.startsWith('ANIMATION_')) {
           isAnimate = true;
         }
       });
@@ -639,7 +642,7 @@ export default {
 
       if (
         fieldCell.animation.enabled === true
-        && _.isEqual(fieldCell.animation.properties, {}) === false
+        && Object.keys(fieldCell.animation.properties).length > 0
       ) {
         fieldCell.animation.tick++;
         changedStyle = getNextAnimationValues(fieldCell.animation);
@@ -648,7 +651,7 @@ export default {
 
       if (
         fieldCell.animation.enabled === false
-        || _.isEqual(changedStyle, {}) === true
+        || Object.keys(changedStyle).length === 0
       ) {
         fieldCell.stopAnimate();
         resolve();
